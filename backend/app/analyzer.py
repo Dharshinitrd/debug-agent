@@ -1,5 +1,10 @@
 """
 Core debugging-agent logic.
+
+Calls the Gemini REST API directly with the key as a URL parameter, since
+current AQ.-prefixed API keys have a known compatibility issue with the
+official Python client libraries (both google-generativeai and google-genai)
+as of mid-2026, while the plain REST endpoint with ?key=... works reliably.
 """
 
 import json
@@ -11,13 +16,12 @@ from typing import Optional
 from dotenv import load_dotenv
 load_dotenv()
 
-from google import genai
-from google.genai import types
+import requests
 from pydantic import BaseModel, Field
 
-client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
-
+API_KEY = os.environ.get("GEMINI_API_KEY")
 MODEL = "gemini-2.5-flash"
+ENDPOINT = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent"
 
 SUPPORTED_LANGUAGES = {"python", "java", "cpp", "javascript"}
 
@@ -94,22 +98,31 @@ def analyze(code: str, language: str) -> DebugResult:
     if language not in SUPPORTED_LANGUAGES:
         raise ValueError(f"Unsupported language: {language}")
 
+    if not API_KEY:
+        raise RuntimeError("GEMINI_API_KEY is not set")
+
     static_output = run_static_analysis(code, language)
 
     user_content = f"Language: {language}\n\nCode:\n```{language}\n{code}\n```"
     if static_output:
         user_content += f"\n\nStatic analysis tool output:\n{static_output}"
 
-    response = client.models.generate_content(
-        model=MODEL,
-        contents=user_content,
-        config=types.GenerateContentConfig(
-            system_instruction=SYSTEM_PROMPT,
-            response_mime_type="application/json",
-        ),
-    )
+    payload = {
+        "system_instruction": {"parts": [{"text": SYSTEM_PROMPT}]},
+        "contents": [{"parts": [{"text": user_content}]}],
+        "generationConfig": {"response_mime_type": "application/json"},
+    }
 
-    raw_text = response.text.strip()
+    resp = requests.post(
+        f"{ENDPOINT}?key={API_KEY}",
+        headers={"Content-Type": "application/json"},
+        json=payload,
+        timeout=30,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+
+    raw_text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
 
     if raw_text.startswith("```"):
         raw_text = raw_text.strip("`")
