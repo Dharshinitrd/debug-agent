@@ -1,7 +1,9 @@
 import { useState } from "react";
 import "./App.css";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+const API_BASE =
+  import.meta.env.VITE_API_BASE ||
+  "https://debug-agent-5.onrender.com";
 
 const LANGUAGES = [
   { id: "python", label: "Python" },
@@ -46,13 +48,20 @@ export default function App() {
     try {
       const res = await fetch(`${API_BASE}/analyze`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, language }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          code,
+          language,
+        }),
       });
+
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.detail || `Request failed (${res.status})`);
       }
+
       const data = await res.json();
       setResult(data);
     } catch (e) {
@@ -71,7 +80,9 @@ export default function App() {
           <span className="brand-dot" />
           <span className="brand-name">Debugging Agent</span>
         </div>
-        <span className="brand-tag">root-cause analysis · 4 languages</span>
+        <span className="brand-tag">
+          root-cause analysis · 4 languages
+        </span>
       </header>
 
       <main className="layout">
@@ -83,23 +94,27 @@ export default function App() {
               onChange={(e) => setLanguage(e.target.value)}
             >
               {LANGUAGES.map((l) => (
-                <option key={l.id} value={l.id}>{l.label}</option>
+                <option key={l.id} value={l.id}>
+                  {l.label}
+                </option>
               ))}
             </select>
+
             <button
               className="run-btn"
               onClick={handleAnalyze}
               disabled={loading || !code.trim()}
             >
-              {loading ? "Analyzing…" : "Analyze code"}
+              {loading ? "Analyzing..." : "Analyze code"}
             </button>
           </div>
+
           <textarea
             className="code-input"
             spellCheck={false}
             value={code}
             onChange={(e) => setCode(e.target.value)}
-            placeholder="Paste code to debug…"
+            placeholder="Paste code to debug..."
           />
 
           {loading && (
@@ -108,7 +123,11 @@ export default function App() {
                 <li
                   key={step}
                   className={
-                    i < traceIndex ? "done" : i === traceIndex ? "active" : "pending"
+                    i < traceIndex
+                      ? "done"
+                      : i === traceIndex
+                      ? "active"
+                      : "pending"
                   }
                 >
                   <span className="trace-marker" />
@@ -122,8 +141,7 @@ export default function App() {
         <section className="panel output-panel">
           {!result && !error && !loading && (
             <div className="empty-state">
-              Paste code on the left and run analysis to see the root cause,
-              a fix, and the debugging steps here.
+              Paste code on the left and click Analyze code.
             </div>
           )}
 
@@ -135,7 +153,11 @@ export default function App() {
 
           {result && (
             <div className="result">
-              <div className={`status-row ${result.error_detected ? "bad" : "good"}`}>
+              <div
+                className={`status-row ${
+                  result.error_detected ? "bad" : "good"
+                }`}
+              >
                 <span className="status-dot" />
                 {result.error_detected
                   ? `${result.error_type || "Error"} detected`
@@ -143,17 +165,23 @@ export default function App() {
               </div>
 
               {result.explanation && (
-                <Block title="Explanation">{result.explanation}</Block>
+                <Block title="Explanation">
+                  {result.explanation}
+                </Block>
               )}
 
               {result.root_cause && (
-                <Block title="Root cause">{result.root_cause}</Block>
+                <Block title="Root cause">
+                  {result.root_cause}
+                </Block>
               )}
 
               {result.corrected_code && (
                 <div className="block">
                   <h3>Corrected code</h3>
-                  <pre className="code-block">{result.corrected_code}</pre>
+                  <pre className="code-block">
+                    {result.corrected_code}
+                  </pre>
                 </div>
               )}
 
@@ -161,7 +189,9 @@ export default function App() {
                 <div className="block">
                   <h3>Debugging steps</h3>
                   <ol className="step-list">
-                    {result.debug_steps.map((s, i) => <li key={i}>{s}</li>)}
+                    {result.debug_steps.map((s, i) => (
+                      <li key={i}>{s}</li>
+                    ))}
                   </ol>
                 </div>
               )}
@@ -170,7 +200,9 @@ export default function App() {
                 <div className="block">
                   <h3>Best practices</h3>
                   <ul className="practice-list">
-                    {result.best_practices.map((s, i) => <li key={i}>{s}</li>)}
+                    {result.best_practices.map((s, i) => (
+                      <li key={i}>{s}</li>
+                    ))}
                   </ul>
                 </div>
               )}
@@ -178,7 +210,9 @@ export default function App() {
               {result.static_analysis_raw && (
                 <div className="block">
                   <h3>Static analysis output</h3>
-                  <pre className="code-block dim">{result.static_analysis_raw}</pre>
+                  <pre className="code-block dim">
+                    {result.static_analysis_raw}
+                  </pre>
                 </div>
               )}
             </div>
